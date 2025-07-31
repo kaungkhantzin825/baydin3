@@ -87,9 +87,16 @@ class BadyinToaskController extends Controller
                 'categories_id' => 'nullable|exists:categories,id',
                 'description' => 'required|string',
                 'photos' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'voice' => 'nullable|mimes:mp3,wav|max:5120',
+                'voice' => 'nullable|mimes:mp3,wav,m4a|max:512000',
                 'video' => 'nullable|mimes:mp4,mov,avi|max:10240',
                 'status' => 'nullable|in:pending,in progress,completed'
+            ], [
+                'photos.max' => 'The photo file must not be larger than 2MB.',
+                'voice.max' => 'The voice file must not be larger than 500MB.',
+                'video.max' => 'The video file must not be larger than 10MB.',
+                'photos.mimes' => 'The photo must be a file of type: jpeg, png, jpg, gif.',
+                'voice.mimes' => 'The voice file must be a file of type: mp3, wav, m4a.',
+                'video.mimes' => 'The video file must be a file of type: mp4, mov, avi.',
             ]);
 
             // Verify if the assigned astrologer exists
@@ -166,9 +173,16 @@ class BadyinToaskController extends Controller
                 'categories_id' => 'nullable|exists:categories,id',
                 'description' => 'nullable|string',
                 'photos' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'voice' => 'nullable|mimes:mp3,wav|max:5120',
+                'voice' => 'nullable|mimes:mp3,wav,m4a|max:512000',
                 'video' => 'nullable|mimes:mp4,mov,avi|max:10240',
                 'status' => 'nullable|in:pending,in progress,completed'
+            ], [
+                'photos.max' => 'The photo file must not be larger than 2MB.',
+                'voice.max' => 'The voice file must not be larger than 500MB.',
+                'video.max' => 'The video file must not be larger than 10MB.',
+                'photos.mimes' => 'The photo must be a file of type: jpeg, png, jpg, gif.',
+                'voice.mimes' => 'The voice file must be a file of type: mp3, wav, m4a.',
+                'video.mimes' => 'The video file must be a file of type: mp4, mov, avi.',
             ]);
 
             $data = $request->except(['photos', 'voice', 'video']);

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\UpdateConsultationRequest;
 
 class ConsultationController extends Controller
 {
@@ -52,19 +53,8 @@ class ConsultationController extends Controller
         return view('admin.consultations.edit', compact('consultation', 'astrologers', 'categories', 'customers'));
     }
     
-    public function update(Request $request, Toask $consultation)
+    public function update(UpdateConsultationRequest $request, Toask $consultation)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'astrologers_id' => 'nullable|exists:users,id',
-            'categories_id' => 'nullable|exists:categories,id',
-            'description' => 'required|string',
-            'status' => 'required|in:pending,in progress,completed',
-            'photos' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'voice' => 'nullable|mimes:mp3,wav,m4a|max:5120',
-            'video' => 'nullable|mimes:mp4,mov,avi|max:10240',
-        ]);
-        
         // Verify astrologer role if assigned
         if ($request->astrologers_id) {
             $astrologer = User::findOrFail($request->astrologers_id);
