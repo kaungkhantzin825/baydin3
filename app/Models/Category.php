@@ -8,7 +8,13 @@ class Category extends Model
 {
     protected $fillable = [
         'name',
+        'description',
         'image',
         'status',
     ];
+
+    public function toasks()
+    {
+        return $this->hasMany(Toask::class, 'categories_id');
+    }
 }

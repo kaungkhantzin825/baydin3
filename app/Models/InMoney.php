@@ -12,7 +12,8 @@ class InMoney extends Model
         'money',
         'status',
         'type',
-        'image'
+        'image',
+        'rejection_reason'
     ];
 
     public function user(): BelongsTo
