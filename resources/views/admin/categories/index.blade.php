@@ -21,6 +21,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultations</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -41,6 +42,11 @@
                                 </div>
                             </div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-lg font-semibold text-green-600">
+                                ${{ number_format($category->price ?? 0, 2) }}
+                            </div>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900 max-w-xs">
                                 {{ Str::limit($category->description ?? 'No description', 50) }}
@@ -58,7 +64,7 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $category->created_at->format('M d, Y') }}
+                            {{ $category->created_at ? $category->created_at->format('M d, Y') : 'N/A' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                             <a href="{{ route('admin.categories.show', $category) }}" class="text-blue-600 hover:text-blue-900">

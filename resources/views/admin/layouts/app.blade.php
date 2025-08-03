@@ -65,6 +65,11 @@
                     Transactions
                 </a>
                 
+                <a href="{{ route('admin.financial.api-management') }}" class="flex items-center px-6 py-3 text-purple-100 hover:bg-purple-700 hover:text-white transition-colors {{ request()->routeIs('admin.financial.api-management') ? 'bg-purple-700 border-r-4 border-purple-400' : '' }}">
+                    <i class="fas fa-code mr-3"></i>
+                    API Management
+                </a>
+                
                 <a href="{{ route('admin.categories.index') }}" class="flex items-center px-6 py-3 text-purple-100 hover:bg-purple-700 hover:text-white transition-colors {{ request()->routeIs('admin.categories.*') ? 'bg-purple-700 border-r-4 border-purple-400' : '' }}">
                     <i class="fas fa-list mr-3"></i>
                     Categories

@@ -11,8 +11,14 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::where('status', true)->get();
-        return response()->json($categories);
+        $categories = Category::where('status_new', 'active')
+            ->select('id', 'name', 'price', 'description', 'image', 'status_new as status')
+            ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories
+        ]);
     }
 
     /**

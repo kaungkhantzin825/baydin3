@@ -37,28 +37,25 @@ class FinancialController extends Controller
             return back()->with('error', 'This deposit has already been processed!');
         }
         
-        DB::transaction(function () use ($deposit) {
+        return DB::transaction(function () use ($deposit) {
             // Update deposit status
             $deposit->update(['status' => 'approved']);
             
-            // Add money to user wallet
-            $userMoney = UserMoney::firstOrCreate(
-                ['user_id' => $deposit->user_id],
-                ['money' => 0]
-            );
-            
-            $userMoney->increment('money', $deposit->money);
+            // Add money to user wallet (same logic as API)
+            $userMoney = UserMoney::firstOrNew(['user_id' => $deposit->user_id]);
+            $userMoney->money = ($userMoney->money ?? 0) + $deposit->money;
+            $userMoney->save();
             
             // Create money history record
             MoneyHistory::create([
                 'user_id' => $deposit->user_id,
                 'money' => $deposit->money,
-                'description' => 'Deposit approved by admin',
+                'description' => 'Deposit approved by admin via web panel',
                 'type' => 'deposit'
             ]);
+            
+            return back()->with('success', 'Deposit approved successfully! New balance: $' . number_format($userMoney->money, 2));
         });
-        
-        return back()->with('success', 'Deposit approved successfully!');
     }
     
     public function rejectDeposit(Request $request, InMoney $deposit)
@@ -168,5 +165,106 @@ class FinancialController extends Controller
         });
         
         return back()->with('success', 'Money deducted successfully!');
+    }
+    
+    /**
+     * API-style money approval (same as /api/user/moneyapprove)
+     */
+    public function apiStyleApproval(Request $request)
+    {
+        $request->validate([
+            'in_money_id' => 'required|exists:in_money,id',
+            'status' => 'required|in:approved,rejected',
+            'reason' => 'required_if:status,rejected|string|max:255'
+        ]);
+
+        return DB::transaction(function () use ($request) {
+            // Find the money request
+            $inMoney = InMoney::lockForUpdate()->findOrFail($request->in_money_id);
+
+            // Check if already processed
+            if ($inMoney->status !== 'pending') {
+                return back()->with('error', 'This request has already been processed.');
+            }
+
+            // Update the status
+            $inMoney->status = $request->status;
+            if ($request->status === 'rejected' && $request->reason) {
+                $inMoney->rejection_reason = $request->reason;
+            }
+            $inMoney->save();
+
+            $newBalance = null;
+            // If approved, update user's balance
+            if ($request->status === 'approved') {
+                $userMoney = UserMoney::firstOrNew(['user_id' => $inMoney->user_id]);
+                $userMoney->money = ($userMoney->money ?? 0) + $inMoney->money;
+                $userMoney->save();
+                $newBalance = $userMoney->money;
+                
+                // Create money history record
+                MoneyHistory::create([
+                    'user_id' => $inMoney->user_id,
+                    'money' => $inMoney->money,
+                    'description' => 'Deposit approved by admin',
+                    'type' => 'deposit'
+                ]);
+            }
+
+            $message = 'Money request ' . $request->status . ' successfully';
+            if ($newBalance) {
+                $message .= '. New balance: $' . number_format($newBalance, 2);
+            }
+
+            return back()->with('success', $message);
+        });
+    }
+    
+    /**
+     * Bulk approve multiple deposits
+     */
+    public function bulkApprove(Request $request)
+    {
+        $request->validate([
+            'deposit_ids' => 'required|array',
+            'deposit_ids.*' => 'exists:in_money,id'
+        ]);
+        
+        $approved = 0;
+        $errors = [];
+        
+        foreach ($request->deposit_ids as $depositId) {
+            try {
+                $deposit = InMoney::findOrFail($depositId);
+                if ($deposit->status === 'pending') {
+                    DB::transaction(function () use ($deposit) {
+                        $deposit->update(['status' => 'approved']);
+                        
+                        $userMoney = UserMoney::firstOrNew(['user_id' => $deposit->user_id]);
+                        $userMoney->money = ($userMoney->money ?? 0) + $deposit->money;
+                        $userMoney->save();
+                        
+                        MoneyHistory::create([
+                            'user_id' => $deposit->user_id,
+                            'money' => $deposit->money,
+                            'description' => 'Deposit approved by admin (bulk approval)',
+                            'type' => 'deposit'
+                        ]);
+                    });
+                    $approved++;
+                } else {
+                    $errors[] = "Deposit #{$depositId} already processed";
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Error processing deposit #{$depositId}: " . $e->getMessage();
+            }
+        }
+        
+        $message = "Successfully approved {$approved} deposits.";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+        
+        return back()->with('success', $message);
     }
 }

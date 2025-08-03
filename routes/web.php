@@ -44,6 +44,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('deposits', [FinancialController::class, 'deposits'])->name('deposits');
             Route::post('deposits/{deposit}/approve', [FinancialController::class, 'approveDeposit'])->name('deposits.approve');
             Route::post('deposits/{deposit}/reject', [FinancialController::class, 'rejectDeposit'])->name('deposits.reject');
+            Route::post('deposits/api-approve', [FinancialController::class, 'apiStyleApproval'])->name('deposits.api-approve');
+            Route::post('deposits/bulk-approve', [FinancialController::class, 'bulkApprove'])->name('deposits.bulk-approve');
+            Route::get('api-management', function() { return view('admin.financial.api-management'); })->name('api-management');
             Route::get('wallets', [FinancialController::class, 'wallets'])->name('wallets');
             Route::get('transactions', [FinancialController::class, 'transactions'])->name('transactions');
             Route::post('add-money', [FinancialController::class, 'addMoney'])->name('add-money');

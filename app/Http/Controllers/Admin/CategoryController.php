@@ -23,11 +23,16 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:categories',
+            'price' => 'required|numeric|min:0|max:999999.99',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive'
         ]);
         
-        Category::create($request->all());
+        $data = $request->all();
+        $data['status_new'] = $data['status'];
+        unset($data['status']);
+        
+        Category::create($data);
         
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category created successfully!');
@@ -48,11 +53,16 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'price' => 'required|numeric|min:0|max:999999.99',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive'
         ]);
         
-        $category->update($request->all());
+        $data = $request->all();
+        $data['status_new'] = $data['status'];
+        unset($data['status']);
+        
+        $category->update($data);
         
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category updated successfully!');
@@ -72,8 +82,9 @@ class CategoryController extends Controller
     
     public function toggleStatus(Category $category)
     {
+        $newStatus = $category->status === 'active' ? 'inactive' : 'active';
         $category->update([
-            'status' => $category->status === 'active' ? 'inactive' : 'active'
+            'status_new' => $newStatus
         ]);
         
         return back()->with('success', 'Category status updated successfully!');
