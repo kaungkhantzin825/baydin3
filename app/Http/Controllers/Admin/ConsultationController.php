@@ -47,7 +47,7 @@ class ConsultationController extends Controller
     {
         $consultation->load(['user', 'astrologer', 'category']);
         $astrologers = User::where('role', 'astrology')->get();
-        $categories = Category::where('status', 'active')->get();
+        $categories = Category::all();
         $customers = User::where('role', 'customer')->get();
         
         return view('admin.consultations.edit', compact('consultation', 'astrologers', 'categories', 'customers'));
@@ -70,6 +70,14 @@ class ConsultationController extends Controller
         }
         
         $data = $request->except(['photos', 'voice', 'video']);
+        
+        // Convert empty strings to null for foreign keys
+        if (empty($data['categories_id'])) {
+            $data['categories_id'] = null;
+        }
+        if (empty($data['astrologers_id'])) {
+            $data['astrologers_id'] = null;
+        }
         
         // Handle file uploads
         if ($request->hasFile('photos')) {

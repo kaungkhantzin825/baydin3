@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserMoney extends Model
 {
+    protected $table = 'user_money';
+    
     protected $fillable = [
         'user_id',
         'money'

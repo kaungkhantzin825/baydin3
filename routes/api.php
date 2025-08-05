@@ -73,6 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
      Route::get('/user/user_money_list', [UserRegisterController::class, 'user_money_list']);
 
+     Route::post('/user/money-cut', [UserRegisterController::class, 'moneyCut']);
+
      Route::get('/user/banktyle', [UserRegisterController::class, 'banktyle']);
 });
 

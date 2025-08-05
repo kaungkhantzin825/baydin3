@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Models\UserMoney;
 use App\Models\MoneyHistory;
+use App\Models\Category;
 use App\Models\InMoney;
 use App\Models\Type;
 use Illuminate\Support\Facades\DB;
@@ -373,7 +374,7 @@ class UserRegisterController extends Controller
         }
     }
 
-   
+
     public function moneyinput(Request $request)
     {
 
@@ -416,12 +417,12 @@ class UserRegisterController extends Controller
         ], 200);
     }
 
-   
+
     public function moneyinputlist(Request $request)
     {
         $perPage = $request->json('per_page', 10);
         $page = $request->json('page', 1);
-        
+
         $transactions = InMoney::where('user_id', auth('sanctum')->id())
             ->orderBy('created_at', 'desc')
             ->paginate(
@@ -508,14 +509,103 @@ class UserRegisterController extends Controller
     public function user_money_list(Request $request)
     {
         $user = $request->user();
-        
+
         // Get user's current balance
         $userMoney = UserMoney::where('user_id', $user->id)->first();
-        
+
         return response()->json([
             'status' => true,
             'current_balance' => $userMoney ? (float)$userMoney->money : 0
         ]);
+    }
+
+    /**
+     * Cut money from user balance for category purchase
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function moneyCut(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'description' => 'nullable|string|max:255'
+        ]);
+
+        $user = $request->user();
+
+        return DB::transaction(function () use ($request, $user) {
+            // Get category with price
+            $category = Category::findOrFail($request->category_id);
+
+            // Check if category exists and has a price
+            if ($category->price <= 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This category is free or not available for purchase.',
+                    'error_code' => 'CATEGORY_FREE'
+                ], 400);
+            }
+
+            // Get user's current balance with lock
+            $userMoney = UserMoney::lockForUpdate()->where('user_id', $user->id)->first();
+            $currentBalance = $userMoney ? $userMoney->money : 0;
+
+            // Check if user has sufficient balance
+            if ($currentBalance < $category->price) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Money is not sufficient please add it',
+                    'error_code' => 'INSUFFICIENT_BALANCE',
+                    'data' => [
+                        'current_balance' => (float)$currentBalance,
+                        'required_amount' => (float)$category->price,
+                        'shortage' => (float)($category->price - $currentBalance)
+                    ]
+                ], 400);
+            }
+
+            // Deduct money from user balance
+            if ($userMoney) {
+                $userMoney->money = $currentBalance - $category->price;
+                $userMoney->save();
+            } else {
+                // This shouldn't happen if validation is correct, but handle it
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User wallet not found. Please contact support.',
+                    'error_code' => 'WALLET_NOT_FOUND'
+                ], 400);
+            }
+
+            // Create money history record
+            $description = $request->description ?? "Payment for {$category->name} consultation";
+            MoneyHistory::create([
+                'user_id' => $user->id,
+                'money' => -$category->price, // Negative amount for deduction
+                'description' => $description,
+                'type' => 'category_purchase'
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payment successful! Money deducted from your account.',
+                'data' => [
+                    'transaction_id' => MoneyHistory::latest()->first()->id,
+                    'category' => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'price' => (float)$category->price
+                    ],
+                    'payment' => [
+                        'amount_deducted' => (float)$category->price,
+                        'previous_balance' => (float)$currentBalance,
+                        'new_balance' => (float)($currentBalance - $category->price)
+                    ],
+                    'timestamp' => now()->toISOString()
+                ]
+            ]);
+        });
     }
 
     /**
@@ -527,7 +617,7 @@ class UserRegisterController extends Controller
     {
         $types = Type::where('status', 'active')
             ->get(['id', 'name', 'number', 'photo', 'status'])
-            ->map(function($type) {
+            ->map(function ($type) {
                 return [
                     'id' => $type->id,
                     'name' => $type->name,

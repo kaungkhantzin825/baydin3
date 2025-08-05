@@ -11,7 +11,7 @@ class Category extends Model
         'price',
         'description',
         'image',
-        'status_new',
+        'status',
     ];
 
     protected $casts = [

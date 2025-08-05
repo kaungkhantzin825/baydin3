@@ -11,8 +11,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::where('status_new', 'active')
-            ->select('id', 'name', 'price', 'description', 'image', 'status_new as status')
+        $categories = Category::select('id', 'name', 'price', 'description', 'image')
             ->get();
         
         return response()->json([
